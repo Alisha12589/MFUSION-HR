@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เกิดข้อผิดพลาด</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0f172a;
+      color: white;
+      font-family: 'Segoe UI', 'Tahoma', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      gap: 12px;
+    }
+    .icon { font-size: 48px; margin-bottom: 8px; }
+    h1 { font-size: 22px; color: #ef4444; }
+    p { color: #64748b; font-size: 14px; text-align: center; max-width: 360px; line-height: 1.6; }
+    button {
+      margin-top: 16px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button:hover { background: #2563eb; }
+  </style>
+</head>
+<body>
+  <div class="icon">⚠️</div>
+  <h1>ไม่สามารถเริ่มต้นระบบได้</h1>
+  <p>เกิดข้อผิดพลาดในการเริ่มต้นเซิร์ฟเวอร์<br>กรุณาปิดโปรแกรมแล้วลองเปิดใหม่อีกครั้ง</p>
+  <button onclick="window.location.reload()">ลองใหม่</button>
+</body>
+</html>

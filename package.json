@@ -1,7 +1,9 @@
 {
-  "name": "hr-accounting-app",
-  "version": "0.1.0",
+  "name": "mfusion-hr",
+  "version": "1.0.0",
+  "description": "ระบบ HR & บัญชี",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
@@ -9,7 +11,10 @@
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:studio": "prisma studio --port 5555",
-    "db:seed": "ts-node --project tsconfig.json prisma/seed.ts"
+    "db:seed": "ts-node --project tsconfig.json prisma/seed.ts",
+    "electron:dev": "electron .",
+    "electron:build": "next build && electron-builder --win --x64",
+    "electron:pack": "electron-builder --win --x64 --dir"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
@@ -46,11 +51,57 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.27",
+    "electron": "^41.1.1",
+    "electron-builder": "^26.8.1",
     "eslint": "^8",
     "eslint-config-next": "15.0.3",
     "postcss": "^8",
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
+  },
+  "build": {
+    "appId": "com.mfusion.hr",
+    "productName": "MFUSION-HR",
+    "copyright": "Copyright © 2024 MFUSION",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "!node_modules"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/standalone",
+        "to": "standalone",
+        "filter": ["**/*"]
+      },
+      {
+        "from": ".next/static",
+        "to": "standalone/.next/static",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "public",
+        "to": "standalone/public",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "prisma/dev.db",
+        "to": "default.db"
+      }
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MFUSION-HR",
+      "deleteAppDataOnUninstall": false
+    }
   }
 }
