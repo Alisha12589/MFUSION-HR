@@ -1,0 +1,290 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ======= AUTH =======
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          String    @default("user") // admin, hr, accountant, user
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ======= HR =======
+model Department {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime   @default(now())
+  employees   Employee[]
+}
+
+model Employee {
+  id             String       @id @default(cuid())
+  employeeCode   String       @unique
+  firstName      String
+  lastName       String
+  email          String?      @unique
+  phone          String?
+  position       String
+  departmentId   String?
+  department     Department?  @relation(fields: [departmentId], references: [id])
+  salary         Float
+  startDate      DateTime
+  endDate        DateTime?
+  status         String       @default("active") // active, inactive, terminated
+  bankAccount    String?
+  bankName       String?
+  nationalId     String?
+  address        String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  attendances    Attendance[]
+  payrolls       Payroll[]
+}
+
+model Attendance {
+  id         String    @id @default(cuid())
+  employeeId String
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  date       DateTime
+  checkIn    DateTime?
+  checkOut   DateTime?
+  status     String    @default("present") // present, absent, late, leave, holiday
+  note       String?
+  createdAt  DateTime  @default(now())
+}
+
+// Templates for payroll line items (configured once, applied to payrolls)
+model PayrollItemTemplate {
+  id          String   @id @default(cuid())
+  name        String   // e.g. "ประกันสังคม", "กยศ.", "ภาษีหัก ณ ที่จ่าย", "โบนัสรายเดือน"
+  type        String   // "addition" | "deduction"
+  calcType    String   // "fixed" | "percentage" | "manual"
+  value       Float    @default(0) // fixed amount OR percentage (e.g. 3 = 3%)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  payrollItems PayrollItem[]
+}
+
+model Payroll {
+  id         String        @id @default(cuid())
+  employeeId String
+  employee   Employee      @relation(fields: [employeeId], references: [id])
+  month      Int
+  year       Int
+  baseSalary Float
+  netSalary  Float
+  status     String        @default("draft") // draft, approved, paid
+  paidAt     DateTime?
+  note       String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  items      PayrollItem[]
+}
+
+// Actual applied line items per payroll
+model PayrollItem {
+  id          String               @id @default(cuid())
+  payrollId   String
+  payroll     Payroll              @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+  templateId  String?
+  template    PayrollItemTemplate? @relation(fields: [templateId], references: [id])
+  name        String
+  type        String               // "addition" | "deduction"
+  amount      Float
+  sortOrder   Int                  @default(0)
+}
+
+// ======= ACCOUNTING =======
+model Customer {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  name        String
+  taxId       String?
+  email       String?
+  phone       String?
+  address     String?
+  contactName String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  invoices    Invoice[]
+  quotations  Quotation[]
+}
+
+model Supplier {
+  id             String          @id @default(cuid())
+  code           String          @unique
+  name           String
+  taxId          String?
+  email          String?
+  phone          String?
+  address        String?
+  contactName    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  purchaseOrders PurchaseOrder[]
+  expenses       Expense[]
+}
+
+model Invoice {
+  id           String        @id @default(cuid())
+  invoiceNo    String        @unique
+  customerId   String
+  customer     Customer      @relation(fields: [customerId], references: [id])
+  issueDate    DateTime
+  dueDate      DateTime
+  subtotal     Float
+  discount     Float         @default(0)
+  tax          Float         @default(0)
+  total        Float
+  status       String        @default("draft") // draft, sent, paid, overdue, cancelled
+  note         String?
+  items        InvoiceItem[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float
+  unitPrice   Float
+  amount      Float
+}
+
+model Quotation {
+  id            String         @id @default(cuid())
+  quotationNo   String         @unique
+  customerId    String
+  customer      Customer       @relation(fields: [customerId], references: [id])
+  issueDate     DateTime
+  validUntil    DateTime
+  subtotal      Float
+  discount      Float          @default(0)
+  tax           Float          @default(0)
+  total         Float
+  status        String         @default("draft") // draft, sent, accepted, rejected, expired
+  note          String?
+  items         QuotationItem[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model QuotationItem {
+  id           String    @id @default(cuid())
+  quotationId  String
+  quotation    Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  description  String
+  quantity     Float
+  unitPrice    Float
+  amount       Float
+}
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  poNo        String              @unique
+  supplierId  String
+  supplier    Supplier            @relation(fields: [supplierId], references: [id])
+  orderDate   DateTime
+  deliverDate DateTime?
+  subtotal    Float
+  discount    Float               @default(0)
+  tax         Float               @default(0)
+  total       Float
+  status      String              @default("draft") // draft, sent, received, cancelled
+  note        String?
+  items       PurchaseOrderItem[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  description     String
+  quantity        Float
+  unitPrice       Float
+  amount          Float
+}
+
+model Expense {
+  id          String    @id @default(cuid())
+  expenseNo   String    @unique
+  supplierId  String?
+  supplier    Supplier? @relation(fields: [supplierId], references: [id])
+  category    String
+  description String
+  amount      Float
+  date        DateTime
+  status      String    @default("pending") // pending, approved, paid
+  receipt     String?
+  note        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Income {
+  id          String   @id @default(cuid())
+  incomeNo    String   @unique
+  category    String
+  description String
+  amount      Float
+  date        DateTime
+  reference   String?
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ChartOfAccount {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  type      String   // asset, liability, equity, revenue, expense
+  createdAt DateTime @default(now())
+}
